@@ -42,12 +42,6 @@ jobs:
       - name: Build frontend
         run: npm --prefix frontend run build
 
-      - name: Install backend deps
-        run: npm ci --prefix backend
-
-      - name: Check backend syntax
-        run: node --check backend/server.js
-
       - name: Upload build artifacts (optional)
         if: success()
         uses: actions/upload-artifact@v4

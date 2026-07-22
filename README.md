@@ -1,6 +1,10 @@
 # 🛡️ VulnX – Advanced Web Vulnerability Scanner
 
+<<<<<<< HEAD
 > A full-stack cybersecurity web application that analyzes website security headers, detects phishing indicators, scans common ports, performs WHOIS lookups, and generates AI-powered security summaries.
+=======
+VulnX is a web security analysis toolkit with a React frontend and a Python Flask scanner API.
+>>>>>>> 301fb1e ( Readme Updated)
 
 ![React](https://img.shields.io/badge/React-19-blue?logo=react)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow?logo=python)
@@ -8,7 +12,12 @@
 ![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4-38BDF8?logo=tailwindcss)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
+<<<<<<< HEAD
 ---
+=======
+- `frontend/` – React + Vite user interface.
+- `scanner/` – Flask API providing security header checks, phishing analysis, port scanning, and WHOIS lookup.
+>>>>>>> 301fb1e ( Readme Updated)
 
 ## 📖 Overview
 
@@ -208,6 +217,7 @@ Run Backend
 python app.py
 ```
 
+<<<<<<< HEAD
 Backend will run on:
 
 ```
@@ -217,6 +227,11 @@ http://127.0.0.1:8000
 ---
 
 ### Frontend Setup
+=======
+The scanner API runs on `http://127.0.0.1:8000` by default.
+
+### 2. Start the frontend
+>>>>>>> 301fb1e ( Readme Updated)
 
 ```bash
 cd frontend
@@ -226,15 +241,32 @@ npm install
 npm run dev
 ```
 
+<<<<<<< HEAD
 Frontend will run on:
 
 ```
 http://localhost:5173
+=======
+Then open the local Vite URL (e.g. `http://localhost:5173`) in your browser.
+
+## Configuration
+
+The frontend uses `VITE_API_URL` when present. If not set, it defaults to `http://127.0.0.1:8000`.
+
+Example `.env` in `frontend/`:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
+>>>>>>> 301fb1e ( Readme Updated)
 ```
 
 ---
 
+<<<<<<< HEAD
 ## 📡 API Endpoints
+=======
+To publish this project to GitHub:
+>>>>>>> 301fb1e ( Readme Updated)
 
 | Method | Endpoint | Description |
 |---------|----------|-------------|
@@ -270,6 +302,7 @@ ports.png
 
 ## 🎯 Future Improvements
 
+<<<<<<< HEAD
 - SSL Certificate Analysis
 - CVE Lookup Integration
 - Technology Fingerprinting
@@ -323,3 +356,14 @@ If you found this project useful:
 ## 📄 License
 
 This project is licensed under the MIT License.
+=======
+The repository includes a GitHub Actions CI workflow at `.github/workflows/ci.yml` that builds the frontend and verifies the scanner Python code.
+
+## Key Features
+
+- **Security Header Audit**: Checks for missing headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy).
+- **Phishing Indicator Detection**: Evaluates URLs for HTTPS usage, IP domain obfuscation, suspicious subdomains, and keywords.
+- **Port Scanning**: Probes common ports (FTP, SSH, SMTP, HTTP, HTTPS, MySQL, etc.).
+- **WHOIS & Domain Intelligence**: Extracts domain registrar, creation date, expiry date, IP resolution, and raw WHOIS data.
+- **AI Security Summary**: Synthesizes scan results into an actionable risk assessment report.
+>>>>>>> 301fb1e ( Readme Updated)
