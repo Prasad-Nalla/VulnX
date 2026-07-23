@@ -1,16 +1,24 @@
 const PortScanCard = ({ ports }) => {
 
-  if (!ports || ports.length === 0) return null;
+  if (!ports) return null;
 
   return (
 
     <div className="mt-10 border border-cyan-500/20 rounded-2xl p-8 bg-slate-900 shadow-lg shadow-cyan-500/10">
 
       <h2 className="text-3xl font-bold text-white mb-6">
-        Open Ports
+        Port Scanner Results
       </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {ports.length === 0 ? (
+        <div className="bg-black border border-cyan-500/20 rounded-xl p-5 text-slate-300">
+          <p className="font-semibold text-green-400">✓ No common open ports detected</p>
+          <p className="text-sm text-slate-400 mt-1">
+            Scanned common service ports (FTP, SSH, SMTP, DNS, HTTP, POP3, IMAP, HTTPS, MySQL, HTTP-ALT).
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {ports.map((port, index) => (
 
@@ -43,7 +51,8 @@ const PortScanCard = ({ ports }) => {
 
         ))}
 
-      </div>
+        </div>
+      )}
 
     </div>
 

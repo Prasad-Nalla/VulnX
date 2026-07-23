@@ -7,6 +7,7 @@ import socket
 import whois
 
 from urllib.parse import urlparse
+from concurrent.futures import ThreadPoolExecutor
 
 app = Flask(__name__)
 
@@ -30,8 +31,13 @@ def get_request_url(data):
 
 def fetch_headers(url):
 
+    headers_req = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
     response = requests.get(
         url,
+        headers=headers_req,
         timeout=5
     )
 
@@ -298,10 +304,20 @@ def analyze_phishing(url):
 # PORT SCANNER
 # -----------------------------------
 
+def check_single_port(host, port, service):
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.5)
+        result = sock.connect_ex((host, port))
+        sock.close()
+        if result == 0:
+            return {"port": port, "service": service, "status": "OPEN"}
+    except Exception:
+        pass
+    return None
+
 def scan_ports(url):
-
     common_ports = {
-
         21: "FTP",
         22: "SSH",
         25: "SMTP",
@@ -312,43 +328,27 @@ def scan_ports(url):
         443: "HTTPS",
         3306: "MySQL",
         8080: "HTTP-ALT",
-
     }
-
-    results = []
 
     parsed = urlparse(url)
     host = parsed.netloc or parsed.path
     host = host.split("/")[0].split(":")[0]
 
     if not host:
-        return results
+        return []
 
-    for port, service in common_ports.items():
+    results = []
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [
+            executor.submit(check_single_port, host, port, service)
+            for port, service in common_ports.items()
+        ]
+        for future in futures:
+            res = future.result()
+            if res:
+                results.append(res)
 
-        sock = socket.socket(
-            socket.AF_INET,
-            socket.SOCK_STREAM
-        )
-
-        sock.settimeout(0.3)
-
-        result = sock.connect_ex(
-            (host, port)
-        )
-
-        if result == 0:
-
-            results.append({
-
-                "port": port,
-                "service": service,
-                "status": "OPEN"
-
-            })
-
-        sock.close()
-
+    results.sort(key=lambda x: x["port"])
     return results
 
 
