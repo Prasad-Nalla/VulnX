@@ -5,9 +5,9 @@ const DnsCard = ({ dns }) => {
 
   if (!dns || !dns.success) {
     return (
-      <div className="mt-6 border border-slate-800 rounded-2xl p-6 bg-slate-900">
-        <h2 className="text-2xl font-bold text-slate-300">🌐 DNS Records & Email Security</h2>
-        <p className="text-slate-400 mt-2">DNS query records unavailable or host failed resolution.</p>
+      <div className="mt-6 border border-emerald-500/40 rounded-lg p-6 bg-black font-mono">
+        <h2 className="text-xl font-bold text-emerald-400">[+] DNS RECORDS & EMAIL SECURITY</h2>
+        <p className="text-emerald-600 mt-2 text-xs">DNS query records unavailable or host failed resolution.</p>
       </div>
     );
   }
@@ -15,75 +15,75 @@ const DnsCard = ({ dns }) => {
   const { records, email_security } = dns;
 
   return (
-    <div className="mt-6 border border-cyan-500/30 rounded-2xl p-8 bg-slate-900/90 backdrop-blur-md shadow-xl shadow-cyan-500/5">
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
+    <div className="mt-6 border border-emerald-500/40 rounded-lg p-6 bg-black/95 shadow-[0_0_20px_rgba(0,255,102,0.15)] font-mono">
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-emerald-500/30 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-            <span className="text-cyan-400">🌐</span> DNS Intelligence & Email Security
+          <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2 neon-text-green">
+            [+] DNS INTELLIGENCE & EMAIL SECURITY
           </h2>
-          <p className="text-slate-400 text-sm mt-1">Domain: <span className="text-cyan-400 font-mono">{dns.domain}</span></p>
+          <p className="text-emerald-600 text-xs mt-1">DOMAIN: <span className="text-emerald-300">{dns.domain}</span></p>
         </div>
 
-        <div className="flex gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <div className="flex gap-2 bg-emerald-950/40 p-1 rounded border border-emerald-500/30">
           <button
             onClick={() => setActiveTab("email")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === "email" ? "bg-cyan-500 text-black shadow-md" : "text-slate-400 hover:text-white"
+            className={`px-3 py-1 rounded text-xs font-bold transition-all ${
+              activeTab === "email" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
             }`}
           >
-            Email Spoofing (SPF/DMARC)
+            [+] EMAIL SPOOFING (SPF/DMARC)
           </button>
           <button
             onClick={() => setActiveTab("records")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === "records" ? "bg-cyan-500 text-black shadow-md" : "text-slate-400 hover:text-white"
+            className={`px-3 py-1 rounded text-xs font-bold transition-all ${
+              activeTab === "records" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
             }`}
           >
-            Raw DNS Records
+            [+] RAW DNS RECORDS
           </button>
         </div>
       </div>
 
       {activeTab === "email" && (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-slate-950/80 p-6 rounded-xl border border-slate-800">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">SPF Security Record</h3>
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-emerald-950/20 p-5 rounded border border-emerald-500/30">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-bold text-emerald-300">SPF SECURITY RECORD</h3>
               {email_security?.spf_configured ? (
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full text-xs font-semibold">
-                  ✓ Configured
+                <span className="px-2.5 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500/60 rounded text-[11px] font-bold">
+                  [✓ CONFIGURED]
                 </span>
               ) : (
-                <span className="px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-full text-xs font-semibold">
-                  ✕ Missing SPF
+                <span className="px-2.5 py-0.5 bg-amber-950 text-amber-400 border border-amber-500/60 rounded text-[11px] font-bold">
+                  [✕ MISSING SPF]
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mb-3">
-              Sender Policy Framework (SPF) specifies which mail servers are authorized to send email on behalf of your domain.
+            <p className="text-[11px] text-emerald-600 mb-3">
+              Sender Policy Framework (SPF) specifies authorized mail servers.
             </p>
-            <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 font-mono text-xs text-cyan-300 break-all">
+            <div className="bg-black p-3 rounded border border-emerald-500/30 text-xs text-emerald-300 break-all">
               {email_security?.spf_record || "No valid v=spf1 TXT record found."}
             </div>
           </div>
 
-          <div className="bg-slate-950/80 p-6 rounded-xl border border-slate-800">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">DMARC Policy Record</h3>
+          <div className="bg-emerald-950/20 p-5 rounded border border-emerald-500/30">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-bold text-emerald-300">DMARC POLICY RECORD</h3>
               {email_security?.dmarc_configured ? (
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full text-xs font-semibold">
-                  ✓ Configured
+                <span className="px-2.5 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500/60 rounded text-[11px] font-bold">
+                  [✓ CONFIGURED]
                 </span>
               ) : (
-                <span className="px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-full text-xs font-semibold">
-                  ✕ Missing DMARC
+                <span className="px-2.5 py-0.5 bg-amber-950 text-amber-400 border border-amber-500/60 rounded text-[11px] font-bold">
+                  [✕ MISSING DMARC]
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mb-3">
-              Domain-based Message Authentication, Reporting, and Conformance (DMARC) instructs receiving servers on handling unauthenticated emails.
+            <p className="text-[11px] text-emerald-600 mb-3">
+              DMARC instructs receiving mail servers on handling spoofed email.
             </p>
-            <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 font-mono text-xs text-cyan-300 break-all">
+            <div className="bg-black p-3 rounded border border-emerald-500/30 text-xs text-emerald-300 break-all">
               {email_security?.dmarc_record || "No valid v=DMARC1 TXT record found."}
             </div>
           </div>
@@ -91,22 +91,22 @@ const DnsCard = ({ dns }) => {
       )}
 
       {activeTab === "records" && (
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-3">
           {Object.entries(records).map(([type, list]) => (
-            <div key={type} className="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="px-2.5 py-0.5 bg-slate-800 text-cyan-400 font-mono font-bold text-xs rounded">
+            <div key={type} className="bg-black p-3.5 rounded border border-emerald-500/30">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-0.5 bg-emerald-950 text-emerald-400 font-bold text-xs rounded border border-emerald-500/40">
                   {type}
                 </span>
-                <span className="text-xs text-slate-400">({list.length} entries)</span>
+                <span className="text-[11px] text-emerald-600">({list.length} records)</span>
               </div>
 
               {list.length === 0 ? (
-                <p className="text-xs text-slate-500 font-mono">No {type} records found.</p>
+                <p className="text-[11px] text-emerald-700">No {type} records found.</p>
               ) : (
                 <ul className="space-y-1">
                   {list.map((rec, i) => (
-                    <li key={i} className="text-xs font-mono text-slate-300 break-all bg-slate-900/60 px-3 py-1.5 rounded border border-slate-800/60">
+                    <li key={i} className="text-xs text-emerald-300 break-all bg-emerald-950/30 px-3 py-1 rounded border border-emerald-500/20">
                       {rec}
                     </li>
                   ))}

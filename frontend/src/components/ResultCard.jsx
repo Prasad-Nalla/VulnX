@@ -1,11 +1,11 @@
 const headerDescriptions = {
-  "Content-Security-Policy": "Restricts sources of scripts, images, and resources to prevent Cross-Site Scripting (XSS) and data injection.",
-  "Strict-Transport-Security": "Forces web browsers to communicate exclusively over encrypted HTTPS connections (HSTS).",
-  "X-Frame-Options": "Prevents framing of your webpage to shield users against Clickjacking attacks.",
-  "X-Content-Type-Options": "Stops browsers from MIME-sniffing responses away from declared Content-Types (nosniff).",
-  "Referrer-Policy": "Controls how much HTTP referrer information is transmitted during navigation.",
-  "Permissions-Policy": "Restricts browser features like camera, geolocation, and microphone access.",
-  "X-XSS-Protection": "Enables legacy browser XSS filters (replaced by CSP in modern web standards)."
+  "Content-Security-Policy": "Restricts script execution & resources to prevent Cross-Site Scripting (XSS).",
+  "Strict-Transport-Security": "Forces browsers to connect strictly over encrypted HTTPS connections (HSTS).",
+  "X-Frame-Options": "Disables unauthorized iframe embedding to shield against Clickjacking.",
+  "X-Content-Type-Options": "Prevents browsers from MIME-sniffing away from declared Content-Types (nosniff).",
+  "Referrer-Policy": "Controls HTTP referrer privacy metadata included in request headers.",
+  "Permissions-Policy": "Restricts browser API access (camera, microphone, geolocation).",
+  "X-XSS-Protection": "Enables legacy browser XSS filters."
 };
 
 const ResultCard = ({ title, status }) => {
@@ -15,32 +15,32 @@ const ResultCard = ({ title, status }) => {
   return (
     <div
       className={`
-        relative overflow-hidden rounded-2xl p-6 border transition-all duration-300
+        rounded-lg p-5 border font-mono transition-all duration-300
         ${
           isSafe
-            ? "border-emerald-500/30 bg-slate-900/90 hover:border-emerald-400/60 shadow-lg shadow-emerald-500/5 hover:shadow-emerald-500/10"
-            : "border-red-500/30 bg-slate-900/90 hover:border-red-400/60 shadow-lg shadow-red-500/5 hover:shadow-red-500/10"
+            ? "border-emerald-500/40 bg-black/90 hover:border-emerald-400 hover:shadow-[0_0_15px_rgba(0,255,102,0.2)]"
+            : "border-red-500/40 bg-black/90 hover:border-red-400 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]"
         }
       `}
     >
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <span className={`text-xl ${isSafe ? 'text-emerald-400' : 'text-red-400'}`}>
-              {isSafe ? '🛡️' : '⚠️'}
+          <div className="flex items-center gap-2.5">
+            <span className={`font-bold ${isSafe ? 'text-emerald-400' : 'text-red-400'}`}>
+              {isSafe ? '[+]' : '[-]'}
             </span>
-            <h3 className="text-white font-bold text-lg font-mono tracking-tight">
+            <h3 className="text-emerald-300 font-bold text-base tracking-tight">
               {title}
             </h3>
           </div>
 
-          <p className="text-slate-400 text-xs mt-2 max-w-2xl leading-relaxed">
+          <p className="text-emerald-600 text-xs mt-1 leading-relaxed">
             {description}
           </p>
 
           {isSafe && (
-            <div className="mt-3 bg-slate-950 p-2.5 rounded-xl border border-slate-800 font-mono text-xs text-cyan-300 break-all">
-              <span className="text-slate-500 text-[10px] block uppercase font-sans font-bold">Header Value:</span>
+            <div className="mt-3 bg-emerald-950/40 p-2.5 rounded border border-emerald-500/30 text-xs text-emerald-300 break-all">
+              <span className="text-emerald-600 text-[10px] block uppercase font-bold">HEADER VALUE:</span>
               <code>{status}</code>
             </div>
           )}
@@ -48,15 +48,15 @@ const ResultCard = ({ title, status }) => {
 
         <span
           className={`
-            px-4 py-2 rounded-xl text-xs font-black tracking-wide uppercase shrink-0 border shadow-sm
+            px-3 py-1 rounded text-xs font-bold uppercase shrink-0 border
             ${
               isSafe
-                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                : "bg-red-500/20 text-red-300 border-red-500/40"
+                ? "bg-emerald-950 text-emerald-300 border-emerald-500/60"
+                : "bg-red-950 text-red-400 border-red-500/60"
             }
           `}
         >
-          {isSafe ? "✓ Configured" : "✕ Missing"}
+          {isSafe ? "[✓ PASSED]" : "[✕ MISSING]"}
         </span>
       </div>
     </div>

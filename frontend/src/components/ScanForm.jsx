@@ -39,7 +39,6 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
         : `https://${targetUrl}`;
 
     try {
-      // Fast single-pass parallel API scan
       const res = await API.post("/scan/full", { url: formattedUrl });
       if (res.data && res.data.success) {
         setFullData(res.data);
@@ -109,41 +108,42 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-4 pb-20">
+    <div className="max-w-6xl mx-auto mt-6 px-4 pb-20 font-mono">
       
       {/* Scanner Input Panel */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
-        <h2 className="text-3xl font-black text-white tracking-tight">
-          Website Security Audit Engine
-        </h2>
-        <p className="text-slate-400 text-sm mt-2 mb-6">
-          Comprehensive real-time analysis: Security Headers, SSL/TLS Ciphers, Geolocation, Tech Stack, DNS Email Spoofing, Port Scanner, and Threat Heuristics.
+      <div className="bg-black/95 border border-emerald-500/50 rounded-lg p-6 shadow-[0_0_30px_rgba(0,255,102,0.15)]">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-emerald-400 font-bold">root@kali:~/vulnx#</span>
+          <span className="text-emerald-300 font-bold">./scan_target.sh</span>
+        </div>
+        <p className="text-emerald-600 text-xs mb-6">
+          [Audit Engine: Security Headers | SSL Ciphers | Geolocation | Tech Stack | SPF/DMARC | Port Scanner | Phishing]
         </p>
 
-        <div className="flex gap-3 flex-col sm:flex-row">
+        <div className="flex gap-2 flex-col sm:flex-row">
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="e.g. google.com or https://example.com"
+              placeholder="Enter domain or URL (e.g. google.com)"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleScan()}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 rounded-2xl px-5 py-4 text-white outline-none font-mono text-sm transition-all shadow-inner"
+              className="w-full bg-black border border-emerald-500/50 focus:border-emerald-400 rounded px-4 py-3 text-emerald-300 outline-none font-mono text-xs transition-all kali-input"
             />
           </div>
 
           <button
             onClick={() => handleScan()}
             disabled={loading}
-            className="bg-gradient-to-r from-cyan-500 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-black font-extrabold px-8 py-4 rounded-2xl transition-all duration-300 shadow-xl shadow-cyan-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold px-6 py-3 rounded transition-all duration-300 shadow-[0_0_15px_rgba(0,255,102,0.4)] disabled:opacity-50 flex items-center justify-center gap-2 text-xs"
           >
-            {loading ? "Scanning Target..." : "Run Security Audit"}
+            {loading ? "[+] AUDITING TARGET..." : "[+] EXECUTE SCAN"}
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-2">
-            <span>⚠️</span> {error}
+          <div className="mt-4 p-3 rounded bg-red-950/60 border border-red-500/50 text-red-400 text-xs flex items-center gap-2">
+            <span>[-] ERROR:</span> {error}
           </div>
         )}
       </div>
@@ -151,80 +151,80 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
       {loading && <Loader />}
 
       {fullData && !loading && (
-        <div className="mt-10">
+        <div className="mt-8">
           
           {/* Tab Navigation */}
-          <div className="flex flex-wrap gap-2 p-1.5 bg-slate-950/80 rounded-2xl border border-slate-800 backdrop-blur-md mb-6">
+          <div className="flex flex-wrap gap-1.5 p-1.5 bg-black/90 rounded border border-emerald-500/40 mb-6">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "overview" ? "bg-cyan-500 text-black shadow-lg" : "text-slate-400 hover:text-white"
+              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+                activeTab === "overview" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              📊 Executive Rating
+              [1] EXECUTIVE RATING
             </button>
 
             <button
               onClick={() => setActiveTab("headers")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "headers" ? "bg-cyan-500 text-black shadow-lg" : "text-slate-400 hover:text-white"
+              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+                activeTab === "headers" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              🛡️ Security Headers
+              [2] HEADERS AUDIT
             </button>
 
             <button
               onClick={() => setActiveTab("geo")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "geo" ? "bg-cyan-500 text-black shadow-lg" : "text-slate-400 hover:text-white"
+              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+                activeTab === "geo" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              🌍 Geo & Tech Stack
+              [3] GEO & TECH STACK
             </button>
 
             <button
               onClick={() => setActiveTab("ssl")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "ssl" ? "bg-cyan-500 text-black shadow-lg" : "text-slate-400 hover:text-white"
+              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+                activeTab === "ssl" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              🔒 SSL / TLS Encryption
+              [4] SSL / TLS CIPHERS
             </button>
 
             <button
               onClick={() => setActiveTab("dns")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "dns" ? "bg-cyan-500 text-black shadow-lg" : "text-slate-400 hover:text-white"
+              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+                activeTab === "dns" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              🌐 DNS & Email Security
+              [5] DNS & EMAIL
             </button>
 
             <button
               onClick={() => setActiveTab("ports")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "ports" ? "bg-cyan-500 text-black shadow-lg" : "text-slate-400 hover:text-white"
+              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+                activeTab === "ports" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              🔌 Port Scanner
+              [6] PORT SCANNER
             </button>
 
             <button
               onClick={() => setActiveTab("phishing")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "phishing" ? "bg-cyan-500 text-black shadow-lg" : "text-slate-400 hover:text-white"
+              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+                activeTab === "phishing" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              🎣 Threat & WHOIS
+              [7] THREAT & WHOIS
             </button>
 
             <button
               onClick={() => setActiveTab("remediation")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "remediation" ? "bg-violet-500 text-white shadow-lg" : "text-slate-400 hover:text-white"
+              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+                activeTab === "remediation" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              🛠️ Remediation Fixes
+              [8] HARDENING FIXES
             </button>
           </div>
 
@@ -241,8 +241,8 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
           )}
 
           {activeTab === "headers" && (
-            <div className="space-y-6">
-              <div className="grid gap-4">
+            <div className="space-y-4">
+              <div className="grid gap-3">
                 {fullData.headers &&
                   Object.entries(fullData.headers).map(([key, value]) => (
                     <ResultCard key={key} title={key} status={value} />
@@ -272,7 +272,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
           {activeTab === "ports" && <PortScanCard ports={fullData.ports || []} />}
 
           {activeTab === "phishing" && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <PhishingCard result={fullData.phishing} />
               {fullData.domain_info && <WhoisCard info={fullData.domain_info} />}
             </div>

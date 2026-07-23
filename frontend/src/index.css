@@ -4,70 +4,95 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-cyan-500 selection:text-black;
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background-color: #020617;
+    @apply bg-black text-emerald-400 min-h-screen antialiased selection:bg-emerald-500 selection:text-black;
+    font-family: 'JetBrains Mono', monospace, 'Courier New', Courier;
+    background-color: #030804;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
-      radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.06) 0px, transparent 50%),
-      linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+      radial-gradient(at 50% 0%, rgba(0, 255, 102, 0.07) 0px, transparent 65%),
+      linear-gradient(to right, rgba(0, 255, 102, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 255, 102, 0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 30px 30px, 30px 30px;
   }
 
-  code, pre, .font-mono {
+  code, pre, input, button, select, div, span, h1, h2, h3, h4, p {
     font-family: 'JetBrains Mono', monospace;
   }
 }
 
-/* Custom Cyber Glows & Glass Effects */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(56, 189, 248, 0.15);
+/* Kali Console Scanline Overlay Effect */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0.35;
 }
 
-.glass-panel-emerald {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+/* Kali Console Glass & Glowing Cards */
+.kali-panel {
+  background: rgba(4, 15, 8, 0.9);
+  border: 1px solid rgba(0, 255, 102, 0.3);
+  box-shadow: 0 0 20px -3px rgba(0, 255, 102, 0.15);
 }
 
-.cyber-glow-cyan {
-  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
+.kali-panel:hover {
+  border-color: rgba(0, 255, 102, 0.6);
+  box-shadow: 0 0 25px 0px rgba(0, 255, 102, 0.25);
 }
 
-.cyber-glow-emerald {
-  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
+.kali-input {
+  background: #020b04;
+  border: 1px solid rgba(0, 255, 102, 0.4);
+  color: #00ff66;
+  box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.1);
 }
 
-.cyber-glow-violet {
-  box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.25);
+.kali-input:focus {
+  border-color: #00ff66;
+  box-shadow: 0 0 15px rgba(0, 255, 102, 0.4);
 }
 
-/* Custom Scrollbar */
+/* Glowing Neon Text & Badges */
+.neon-text-green {
+  color: #00ff66;
+  text-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
+}
+
+.neon-border-green {
+  border-color: #00ff66;
+  box-shadow: 0 0 10px rgba(0, 255, 102, 0.3);
+}
+
+/* Custom Scrollbar for Kali Console */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #020617;
+  background: #030804;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #052e16;
+  border-radius: 2px;
+  border: 1px solid #00ff66;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #00ff66;
 }
 
-/* Radar Scan Pulse Animation */
+/* Kali Radar Scan Pulse Animation */
 @keyframes radar-sweep {
   0% {
     transform: rotate(0deg);
@@ -78,5 +103,5 @@
 }
 
 .animate-radar {
-  animation: radar-sweep 4s linear infinite;
+  animation: radar-sweep 3s linear infinite;
 }
