@@ -69,6 +69,142 @@ def check_headers(url):
 
 
 # -----------------------------------
+# IP GEOLOCATION & NETWORK INTEL
+# -----------------------------------
+
+def analyze_ip_geo(url):
+    parsed = urlparse(url)
+    hostname = parsed.netloc or parsed.path
+    hostname = hostname.split("/")[0].split(":")[0]
+
+    try:
+        ip = socket.gethostbyname(hostname)
+        res = requests.get(f"http://ip-api.com/json/{ip}", timeout=4)
+        if res.status_code == 200:
+            geo = res.json()
+            if geo.get("status") == "success":
+                return {
+                    "ip": ip,
+                    "country": geo.get("country", "Unknown"),
+                    "country_code": geo.get("countryCode", ""),
+                    "city": geo.get("city", "Unknown"),
+                    "region": geo.get("regionName", ""),
+                    "isp": geo.get("isp", "Unknown"),
+                    "org": geo.get("org", "Unknown"),
+                    "asn": geo.get("as", "Unknown"),
+                    "lat": geo.get("lat"),
+                    "lon": geo.get("lon"),
+                    "timezone": geo.get("timezone", "")
+                }
+        return {"ip": ip, "country": "Unknown", "isp": "Unknown", "org": "Unknown"}
+    except Exception as e:
+        return {"ip": "Unavailable", "error": str(e)}
+
+
+# -----------------------------------
+# TECH STACK FINGERPRINTING
+# -----------------------------------
+
+def detect_tech_stack(raw_headers):
+    techs = []
+    headers_lower = {k.lower(): v for k, v in (raw_headers or {}).items()}
+
+    server = headers_lower.get("server")
+    if server:
+        techs.append({"category": "Web Server", "name": server})
+
+    powered_by = headers_lower.get("x-powered-by")
+    if powered_by:
+        techs.append({"category": "Backend / Framework", "name": powered_by})
+
+    via = headers_lower.get("via")
+    if via:
+        techs.append({"category": "Proxy / CDN", "name": via})
+
+    if "cf-ray" in headers_lower or "cf-cache-status" in headers_lower:
+        techs.append({"category": "CDN & WAF Protection", "name": "Cloudflare"})
+    if "x-amz-cf-id" in headers_lower or "x-amz-request-id" in headers_lower:
+        techs.append({"category": "Cloud Infrastructure", "name": "Amazon Web Services (AWS)"})
+    if "x-github-request-id" in headers_lower:
+        techs.append({"category": "Hosting Platform", "name": "GitHub Pages"})
+    if "x-pantheon-styx-hostname" in headers_lower:
+        techs.append({"category": "Hosting Platform", "name": "Pantheon CMS"})
+    if "x-vtex-backend-status" in headers_lower:
+        techs.append({"category": "E-Commerce Engine", "name": "VTEX"})
+
+    return techs
+
+
+# -----------------------------------
+# HTTP PERFORMANCE & REDIRECT TRACER
+# -----------------------------------
+
+def analyze_http_perf(url):
+    try:
+        headers_req = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        start_time = datetime.now()
+        res = requests.get(url, headers=headers_req, timeout=6, allow_redirects=True)
+        elapsed_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+
+        redirect_chain = []
+        for r in res.history:
+            redirect_chain.append({
+                "status_code": r.status_code,
+                "url": r.url
+            })
+
+        return {
+            "response_time_ms": elapsed_ms,
+            "status_code": res.status_code,
+            "final_url": res.url,
+            "redirect_count": len(redirect_chain),
+            "redirect_chain": redirect_chain,
+            "content_type": res.headers.get("Content-Type", "Unknown"),
+            "content_length": len(res.content) if res.content else 0
+        }
+    except Exception as e:
+        return {"response_time_ms": 0, "error": str(e)}
+
+
+# -----------------------------------
+# SECURITY POLICY FILES (ROBOTS / SECURITY.TXT)
+# -----------------------------------
+
+def check_security_files(url):
+    parsed = urlparse(url)
+    base_url = f"{parsed.scheme}://{parsed.netloc}"
+    headers_req = {"User-Agent": "Mozilla/5.0"}
+
+    robots_found = False
+    robots_content = ""
+    security_txt_found = False
+    security_txt_content = ""
+
+    try:
+        res = requests.get(f"{base_url}/robots.txt", headers=headers_req, timeout=3)
+        if res.status_code == 200 and ("user-agent" in res.text.lower() or "disallow" in res.text.lower()):
+            robots_found = True
+            robots_content = res.text[:600]
+    except Exception:
+        pass
+
+    try:
+        res = requests.get(f"{base_url}/.well-known/security.txt", headers=headers_req, timeout=3)
+        if res.status_code == 200 and ("contact" in res.text.lower() or "expires" in res.text.lower()):
+            security_txt_found = True
+            security_txt_content = res.text[:600]
+    except Exception:
+        pass
+
+    return {
+        "robots_txt": {"found": robots_found, "preview": robots_content},
+        "security_txt": {"found": security_txt_found, "preview": security_txt_content}
+    }
+
+
+# -----------------------------------
 # SSL / TLS INSPECTOR
 # -----------------------------------
 
@@ -478,33 +614,26 @@ def calculate_overall_security_grade(headers, ssl_data, dns_data, phishing_data,
     if score >= 90:
         grade = "A+"
         status = "EXCELLENT"
-        color = "green"
     elif score >= 80:
         grade = "A"
         status = "GOOD"
-        color = "emerald"
     elif score >= 70:
         grade = "B"
         status = "FAIR"
-        color = "cyan"
     elif score >= 55:
         grade = "C"
         status = "MODERATE RISK"
-        color = "yellow"
     elif score >= 40:
         grade = "D"
         status = "HIGH RISK"
-        color = "orange"
     else:
         grade = "F"
         status = "CRITICAL RISK"
-        color = "red"
 
     return {
         "score": score,
         "grade": grade,
         "status": status,
-        "color": color
     }
 
 
@@ -546,13 +675,16 @@ def scan_full():
         return jsonify({"success": False, "error": str(e)}), 400
 
     try:
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=8) as executor:
             fut_headers = executor.submit(check_headers, url)
             fut_ssl = executor.submit(analyze_ssl, url)
             fut_dns = executor.submit(analyze_dns, url)
             fut_phishing = executor.submit(analyze_phishing, url)
             fut_ports = executor.submit(scan_ports, url)
             fut_whois = executor.submit(get_domain_info, url)
+            fut_geo = executor.submit(analyze_ip_geo, url)
+            fut_perf = executor.submit(analyze_http_perf, url)
+            fut_files = executor.submit(check_security_files, url)
 
             headers, fetched = fut_headers.result()
             ssl_data = fut_ssl.result()
@@ -560,7 +692,11 @@ def scan_full():
             phishing = fut_phishing.result()
             ports = fut_ports.result()
             domain_info = fut_whois.result()
+            geo_info = fut_geo.result()
+            perf_info = fut_perf.result()
+            security_files = fut_files.result()
 
+        tech_stack = detect_tech_stack(fetched.get("raw_headers"))
         remediations = generate_remediation(headers, ssl_data, dns_data)
         overall = calculate_overall_security_grade(headers, ssl_data, dns_data, phishing, ports)
         summary = generate_risk_summary(headers, phishing, ports)
@@ -579,6 +715,10 @@ def scan_full():
             "phishing": phishing,
             "ports": ports,
             "domain_info": domain_info,
+            "geo_info": geo_info,
+            "tech_stack": tech_stack,
+            "perf_info": perf_info,
+            "security_files": security_files,
             "remediations": remediations
         })
     except Exception as e:
@@ -589,15 +729,22 @@ def scan_full():
 # INDIVIDUAL MODULAR ROUTES
 # -----------------------------------
 
+@app.route("/scan/geo", methods=["POST"])
+def geo_scan():
+    data = request.json
+    try:
+        url = get_request_url(data)
+        geo = analyze_ip_geo(url)
+        return jsonify({"success": True, "geo": geo})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/scan/headers", methods=["POST"])
 def scan_headers():
     data = request.json
     try:
         url = get_request_url(data)
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)}), 400
-
-    try:
         headers, fetched = check_headers(url)
         return jsonify({
             "success": True,
@@ -615,10 +762,6 @@ def ssl_scan():
     data = request.json
     try:
         url = get_request_url(data)
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)}), 400
-
-    try:
         result = analyze_ssl(url)
         return jsonify({"success": True, "ssl": result})
     except Exception as e:
@@ -630,10 +773,6 @@ def dns_scan():
     data = request.json
     try:
         url = get_request_url(data)
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)}), 400
-
-    try:
         result = analyze_dns(url)
         return jsonify({"success": True, "dns": result})
     except Exception as e:
@@ -645,10 +784,6 @@ def phishing_scan():
     data = request.json
     try:
         url = get_request_url(data)
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)}), 400
-
-    try:
         result = analyze_phishing(url)
         return jsonify({"success": True, "result": result})
     except Exception as e:
@@ -660,10 +795,6 @@ def port_scan():
     data = request.json
     try:
         url = get_request_url(data)
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)}), 400
-
-    try:
         results = scan_ports(url)
         return jsonify({"success": True, "ports": results})
     except Exception as e:
@@ -675,10 +806,6 @@ def risk_summary():
     data = request.json
     try:
         url = get_request_url(data)
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)}), 400
-
-    try:
         headers, fetched = check_headers(url)
         phishing = analyze_phishing(url)
         ports = scan_ports(url)
@@ -700,10 +827,6 @@ def domain_scan():
     data = request.json
     try:
         url = get_request_url(data)
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)}), 400
-
-    try:
         info = get_domain_info(url)
         return jsonify({"success": True, "info": info})
     except Exception as e:

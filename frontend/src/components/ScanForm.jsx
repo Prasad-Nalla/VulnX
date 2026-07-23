@@ -11,6 +11,7 @@ import PortScanCard from "./PortScanCard";
 import PhishingCard from "./PhishingCard";
 import WhoisCard from "./WhoisCard";
 import RemediationCard from "./RemediationCard";
+import GeoTechCard from "./GeoTechCard";
 
 const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
   const [url, setUrl] = useState(initialUrl);
@@ -47,7 +48,6 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
       }
     } catch (err) {
       console.warn("Unified endpoint fallback to modular endpoints...", err);
-      // Fallback to modular endpoints if backend is running legacy code
       try {
         const [headersRes, sslRes, dnsRes, phishingRes, portsRes, domainRes, summaryRes] = await Promise.allSettled([
           API.post("/scan/headers", { url: formattedUrl }),
@@ -68,7 +68,6 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
         const domain_info = domainRes.status === "fulfilled" ? domainRes.value.data.info : null;
         const summary = summaryRes.status === "fulfilled" ? summaryRes.value.data.summary : "";
 
-        // Calculate score fallback
         const missingCount = Object.values(headers).filter(v => v === "Missing").length;
         const score = Math.max(0, 100 - (missingCount * 8) - (ssl?.is_valid ? 0 : 20));
         const grade = score >= 85 ? "A" : score >= 70 ? "B" : score >= 50 ? "C" : "F";
@@ -118,7 +117,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
           Website Security Audit Engine
         </h2>
         <p className="text-slate-400 text-sm mt-2 mb-6">
-          Comprehensive real-time analysis: Security Headers, SSL/TLS Ciphers, DNS Email Spoofing, Port Scanner, and Phishing Heuristics.
+          Comprehensive real-time analysis: Security Headers, SSL/TLS Ciphers, Geolocation, Tech Stack, DNS Email Spoofing, Port Scanner, and Threat Heuristics.
         </p>
 
         <div className="flex gap-3 flex-col sm:flex-row">
@@ -172,6 +171,15 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
               }`}
             >
               🛡️ Security Headers
+            </button>
+
+            <button
+              onClick={() => setActiveTab("geo")}
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "geo" ? "bg-cyan-500 text-black shadow-lg" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              🌍 Geo & Tech Stack
             </button>
 
             <button
@@ -246,6 +254,15 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
                 rawHeaders={fullData.raw_headers}
               />
             </div>
+          )}
+
+          {activeTab === "geo" && (
+            <GeoTechCard
+              geoInfo={fullData.geo_info}
+              techStack={fullData.tech_stack}
+              perfInfo={fullData.perf_info}
+              securityFiles={fullData.security_files}
+            />
           )}
 
           {activeTab === "ssl" && <SslCard ssl={fullData.ssl} />}
