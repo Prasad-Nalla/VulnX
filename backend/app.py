@@ -6,12 +6,72 @@ import re
 import socket
 import ssl
 import whois
+import sqlite3
 from datetime import datetime
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 
 app = Flask(__name__)
 CORS(app)
+
+
+# -----------------------------------
+# SQLITE SCAN HISTORY DATABASE
+# -----------------------------------
+
+def init_db():
+    try:
+        conn = sqlite3.connect("vulnx.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS scan_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                target_url TEXT NOT NULL,
+                score INTEGER,
+                grade TEXT,
+                status TEXT,
+                scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+init_db()
+
+
+def save_scan_history(url, score, grade, status):
+    try:
+        conn = sqlite3.connect("vulnx.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO scan_history (target_url, score, grade, status)
+            VALUES (?, ?, ?, ?)
+        ''', (url, score, grade, status))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+def get_scan_history():
+    try:
+        conn = sqlite3.connect("vulnx.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, target_url, score, grade, status, scanned_at 
+            FROM scan_history 
+            ORDER BY id DESC LIMIT 10
+        ''')
+        rows = cursor.fetchall()
+        conn.close()
+        return [
+            {"id": r[0], "url": r[1], "score": r[2], "grade": r[3], "status": r[4], "scanned_at": r[5]}
+            for r in rows
+        ]
+    except Exception:
+        return []
 
 
 def normalize_url(url):
@@ -28,32 +88,117 @@ def get_request_url(data):
 
 
 # -----------------------------------
+# CORS MISCONFIGURATION AUDITOR
+# -----------------------------------
+
+def audit_cors(url):
+    try:
+        res1 = requests.get(url, headers={"Origin": "https://evil.com"}, timeout=4)
+        res2 = requests.get(url, headers={"Origin": "null"}, timeout=4)
+
+        cors1 = res1.headers.get("Access-Control-Allow-Origin")
+        cred1 = res1.headers.get("Access-Control-Allow-Credentials")
+
+        cors2 = res2.headers.get("Access-Control-Allow-Origin")
+        cred2 = res2.headers.get("Access-Control-Allow-Credentials")
+
+        vulnerable = False
+        risk = "SAFE"
+        reasons = []
+
+        if cors1 == "*" and cred1 == "true":
+            vulnerable = True
+            risk = "CRITICAL"
+            reasons.append("Wildcard origin '*' combined with Allow-Credentials true.")
+        elif cors1 == "https://evil.com":
+            vulnerable = True
+            risk = "HIGH"
+            reasons.append("Arbitrary Origin 'https://evil.com' is dynamically reflected in CORS headers.")
+            if cred1 == "true":
+                reasons.append("Allow-Credentials set to true with reflected origin (High XHR Data Theft Risk!).")
+        elif cors2 == "null":
+            vulnerable = True
+            risk = "HIGH"
+            reasons.append("CORS policies explicitly trust 'null' origin.")
+
+        return {
+            "vulnerable": vulnerable,
+            "risk": risk,
+            "allow_origin": cors1 or "Not Reflected",
+            "allow_credentials": cred1 or "Not Set",
+            "reasons": reasons
+        }
+    except Exception as e:
+        return {"vulnerable": False, "risk": "UNKNOWN", "error": str(e)}
+
+
+# -----------------------------------
+# DNSSEC VALIDATOR
+# -----------------------------------
+
+def check_dnssec(url):
+    parsed = urlparse(url)
+    domain = parsed.netloc or parsed.path
+    domain = domain.split("/")[0].split(":")[0]
+
+    try:
+        res = requests.get(
+            "https://cloudflare-dns.com/dns-query",
+            params={"name": domain, "type": "DS"},
+            headers={"accept": "application/dns-json"},
+            timeout=4
+        )
+        enabled = False
+        if res.status_code == 200:
+            data = res.json()
+            if "Answer" in data and len(data["Answer"]) > 0:
+                enabled = True
+        return {"domain": domain, "enabled": enabled}
+    except Exception:
+        return {"domain": domain, "enabled": False}
+
+
+# -----------------------------------
 # SECURITY HEADER SCANNER
 # -----------------------------------
 
 def fetch_headers(url):
     headers_req = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5"
     }
 
-    response = requests.get(
-        url,
-        headers=headers_req,
-        timeout=5
-    )
-
-    headers = response.headers
-
-    return {
-        "raw_headers": dict(headers),
-        "status_code": response.status_code,
-        "final_url": response.url,
-    }
+    try:
+        response = requests.get(url, headers=headers_req, timeout=6, allow_redirects=True)
+        return {
+            "raw_headers": dict(response.headers),
+            "status_code": response.status_code,
+            "final_url": response.url,
+        }
+    except Exception as e:
+        if url.startswith("https://"):
+            http_url = "http://" + url[8:]
+            try:
+                response = requests.get(http_url, headers=headers_req, timeout=6, allow_redirects=True)
+                return {
+                    "raw_headers": dict(response.headers),
+                    "status_code": response.status_code,
+                    "final_url": response.url,
+                }
+            except Exception:
+                pass
+        return {
+            "raw_headers": {},
+            "status_code": 0,
+            "final_url": url,
+            "error": str(e)
+        }
 
 
 def check_headers(url):
     fetched = fetch_headers(url)
-    headers = fetched["raw_headers"]
+    headers = fetched.get("raw_headers", {})
 
     security_headers = {
         "Content-Security-Policy": headers.get("Content-Security-Policy", "Missing"),
@@ -66,6 +211,185 @@ def check_headers(url):
     }
 
     return security_headers, fetched
+
+
+# -----------------------------------
+# EXPOSED SENSITIVE PATH AUDITOR
+# -----------------------------------
+
+def check_single_endpoint(base_url, path, label):
+    url = f"{base_url.rstrip('/')}/{path.lstrip('/')}"
+    try:
+        res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=2.5, allow_redirects=False)
+        if res.status_code == 200:
+            return {"path": path, "label": label, "status_code": 200, "exposed": True, "url": url}
+        elif res.status_code in [401, 403]:
+            return {"path": path, "label": label, "status_code": res.status_code, "exposed": False, "protected": True, "url": url}
+    except Exception:
+        pass
+    return None
+
+
+def audit_exposed_paths(url):
+    parsed = urlparse(url)
+    base_url = f"{parsed.scheme}://{parsed.netloc}"
+
+    sensitive_paths = [
+        (".env", "Environment Variables File"),
+        (".git/HEAD", "Git Source Control Repository"),
+        ("config.json", "Application Configuration File"),
+        ("wp-config.php", "WordPress Database Config"),
+        ("admin/", "Admin Login Dashboard"),
+        ("api/docs", "OpenAPI / Swagger Documentation"),
+        ("phpinfo.php", "PHP Configuration Info Dump"),
+        ("server-status", "Apache Server Status Page"),
+        ("backup.sql", "Database Dump File"),
+        (".vscode/settings.json", "VSCode Editor Settings"),
+    ]
+
+    exposed = []
+    try:
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [
+                executor.submit(check_single_endpoint, base_url, path, label)
+                for path, label in sensitive_paths
+            ]
+            for future in futures:
+                res = future.result()
+                if res:
+                    exposed.append(res)
+    except Exception:
+        pass
+
+    return {
+        "count": len([e for e in exposed if e["exposed"]]),
+        "results": exposed
+    }
+
+
+# -----------------------------------
+# CVE & VERSION VULNERABILITY ADVISORY
+# -----------------------------------
+
+def check_cve_advisories(tech_stack):
+    cve_database = {
+        "nginx/1.18.0": [
+            {"cve": "CVE-2021-23017", "severity": "HIGH", "desc": "Off-by-one error in 1-byte memory overwrite during DNS resolution."}
+        ],
+        "apache/2.4.49": [
+            {"cve": "CVE-2021-41773", "severity": "CRITICAL", "desc": "Path traversal and remote code execution vulnerability."}
+        ],
+        "php/7.4": [
+            {"cve": "CVE-2019-11043", "severity": "CRITICAL", "desc": "PHP-FPM Remote Code Execution in Nginx configurations."}
+        ]
+    }
+
+    advisories = []
+    for tech in (tech_stack or []):
+        tech_name = tech.get("name", "").lower()
+        for key, vulns in cve_database.items():
+            if key in tech_name:
+                for v in vulns:
+                    advisories.append({
+                        "tech": tech.get("name"),
+                        "cve": v["cve"],
+                        "severity": v["severity"],
+                        "desc": v["desc"]
+                    })
+
+    return advisories
+
+
+# -----------------------------------
+# OSINT SUBDOMAIN ENUMERATION (crt.sh)
+# -----------------------------------
+
+def enumerate_subdomains(url):
+    parsed = urlparse(url)
+    domain = parsed.netloc or parsed.path
+    domain = domain.split("/")[0].split(":")[0]
+
+    parts = domain.split(".")
+    if len(parts) > 2:
+        root_domain = ".".join(parts[-2:])
+    else:
+        root_domain = domain
+
+    subdomains = set()
+    try:
+        res = requests.get(f"https://crt.sh/?q=%.{root_domain}&output=json", timeout=4)
+        if res.status_code == 200:
+            entries = res.json()
+            for entry in entries:
+                name = entry.get("name_value", "")
+                for sub in name.split("\n"):
+                    sub = sub.strip().lower()
+                    if "*" not in sub and sub.endswith(root_domain):
+                        subdomains.add(sub)
+    except Exception:
+        pass
+
+    sorted_subs = sorted(list(subdomains))[:25]
+    return {
+        "root_domain": root_domain,
+        "count": len(subdomains),
+        "subdomains": sorted_subs
+    }
+
+
+# -----------------------------------
+# COOKIE SECURITY AUDIT
+# -----------------------------------
+
+def audit_cookie_security(url):
+    try:
+        headers_req = {"User-Agent": "Mozilla/5.0"}
+        res = requests.get(url, headers=headers_req, timeout=5)
+        raw_cookies = res.cookies
+
+        cookie_audit = []
+        for cookie in raw_cookies:
+            cookie_audit.append({
+                "name": cookie.name,
+                "domain": cookie.domain,
+                "path": cookie.path,
+                "secure": cookie.secure,
+                "http_only": cookie.has_nonstandard_attr("HttpOnly") or getattr(cookie, "httponly", False),
+                "same_site": cookie.get_nonstandard_attr("SameSite", "Not Set")
+            })
+
+        return {
+            "count": len(cookie_audit),
+            "cookies": cookie_audit
+        }
+    except Exception as e:
+        return {"count": 0, "cookies": [], "error": str(e)}
+
+
+# -----------------------------------
+# PAGE METADATA & OPENGRAPH
+# -----------------------------------
+
+def extract_page_metadata(url):
+    try:
+        headers_req = {"User-Agent": "Mozilla/5.0"}
+        res = requests.get(url, headers=headers_req, timeout=5)
+        html = res.text
+
+        title_match = re.search(r"<title>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
+        title = title_match.group(1).strip() if title_match else "N/A"
+
+        desc_match = re.search(r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']', html, re.IGNORECASE)
+        description = desc_match.group(1).strip() if desc_match else "N/A"
+
+        return {
+            "title": title,
+            "description": description,
+            "content_type": res.headers.get("Content-Type", "Unknown"),
+            "html_size_bytes": len(html)
+        }
+    except Exception as e:
+        return {"title": "Unavailable", "description": str(e)}
 
 
 # -----------------------------------
@@ -361,16 +685,25 @@ def get_domain_info(url):
         if not domain:
             raise ValueError("Invalid URL")
 
-        ip = socket.gethostbyname(domain)
-        domain_info = whois.whois(domain)
+        ip = "Unavailable"
+        try:
+            ip = socket.gethostbyname(domain)
+        except Exception:
+            pass
 
-        registrar = str(domain_info.registrar)
-        creation_date = str(domain_info.creation_date)
-        expiration_date = str(domain_info.expiration_date)
+        domain_info = None
+        try:
+            domain_info = whois.whois(domain)
+        except Exception:
+            pass
 
-        raw_whois = getattr(domain_info, "text", None)
+        registrar = str(getattr(domain_info, "registrar", "Unknown"))
+        creation_date = str(getattr(domain_info, "creation_date", "Unknown"))
+        expiration_date = str(getattr(domain_info, "expiration_date", "Unknown"))
+
+        raw_whois = getattr(domain_info, "text", None) if domain_info else None
         if raw_whois is None:
-            raw_whois = str(domain_info)
+            raw_whois = str(domain_info) if domain_info else ""
 
         return {
             "domain": domain,
@@ -489,15 +822,18 @@ def scan_ports(url):
         return []
 
     results = []
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [
-            executor.submit(check_single_port, host, port, service)
-            for port, service in common_ports.items()
-        ]
-        for future in futures:
-            res = future.result()
-            if res:
-                results.append(res)
+    try:
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [
+                executor.submit(check_single_port, host, port, service)
+                for port, service in common_ports.items()
+            ]
+            for future in futures:
+                res = future.result()
+                if res:
+                    results.append(res)
+    except Exception:
+        pass
 
     results.sort(key=lambda x: x["port"])
     return results
@@ -507,7 +843,7 @@ def scan_ports(url):
 # REMEDIATION & GRADE ENGINE
 # -----------------------------------
 
-def generate_remediation(headers, ssl_data, dns_data):
+def generate_remediation(headers, ssl_data, dns_data, exposed_paths):
     remediations = []
 
     if headers.get("Content-Security-Policy") == "Missing":
@@ -560,6 +896,18 @@ def generate_remediation(headers, ssl_data, dns_data):
             "meta": "<meta name=\"referrer\" content=\"strict-origin-when-cross-origin\">"
         })
 
+    if exposed_paths and exposed_paths.get("count", 0) > 0:
+        for exp in exposed_paths.get("results", []):
+            if exp.get("exposed"):
+                remediations.append({
+                    "title": f"Exposed Sensitive Path: /{exp['path']}",
+                    "severity": "HIGH",
+                    "impact": f"Publicly accessible {exp['label']} may leak secrets or sensitive server files.",
+                    "nginx": f"location ~* /{exp['path']} {{ deny all; return 404; }}",
+                    "apache": f"<Files \"{exp['path']}\">\n  Require all denied\n</Files>",
+                    "meta": f"Restrict public web server access to /{exp['path']}"
+                })
+
     if dns_data and dns_data.get("success"):
         email_sec = dns_data.get("email_security", {})
         if not email_sec.get("spf_configured"):
@@ -584,7 +932,7 @@ def generate_remediation(headers, ssl_data, dns_data):
     return remediations
 
 
-def calculate_overall_security_grade(headers, ssl_data, dns_data, phishing_data, ports_data):
+def calculate_overall_security_grade(headers, ssl_data, dns_data, phishing_data, ports_data, exposed_paths):
     score = 100
 
     missing_headers = [k for k, v in headers.items() if v == "Missing"]
@@ -608,6 +956,9 @@ def calculate_overall_security_grade(headers, ssl_data, dns_data, phishing_data,
     high_risk_ports = [21, 22, 25, 3306]
     exposed_high_risk = [p for p in (ports_data or []) if p.get("port") in high_risk_ports]
     score -= len(exposed_high_risk) * 5
+
+    if exposed_paths and exposed_paths.get("count", 0) > 0:
+        score -= exposed_paths["count"] * 12
 
     score = max(0, min(100, score))
 
@@ -675,7 +1026,7 @@ def scan_full():
         return jsonify({"success": False, "error": str(e)}), 400
 
     try:
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=14) as executor:
             fut_headers = executor.submit(check_headers, url)
             fut_ssl = executor.submit(analyze_ssl, url)
             fut_dns = executor.submit(analyze_dns, url)
@@ -685,6 +1036,12 @@ def scan_full():
             fut_geo = executor.submit(analyze_ip_geo, url)
             fut_perf = executor.submit(analyze_http_perf, url)
             fut_files = executor.submit(check_security_files, url)
+            fut_subs = executor.submit(enumerate_subdomains, url)
+            fut_cookies = executor.submit(audit_cookie_security, url)
+            fut_meta = executor.submit(extract_page_metadata, url)
+            fut_paths = executor.submit(audit_exposed_paths, url)
+            fut_cors = executor.submit(audit_cors, url)
+            fut_dnssec = executor.submit(check_dnssec, url)
 
             headers, fetched = fut_headers.result()
             ssl_data = fut_ssl.result()
@@ -695,11 +1052,21 @@ def scan_full():
             geo_info = fut_geo.result()
             perf_info = fut_perf.result()
             security_files = fut_files.result()
+            osint_subdomains = fut_subs.result()
+            cookie_audit = fut_cookies.result()
+            page_metadata = fut_meta.result()
+            exposed_paths = fut_paths.result()
+            cors_audit = fut_cors.result()
+            dnssec_info = fut_dnssec.result()
 
         tech_stack = detect_tech_stack(fetched.get("raw_headers"))
-        remediations = generate_remediation(headers, ssl_data, dns_data)
-        overall = calculate_overall_security_grade(headers, ssl_data, dns_data, phishing, ports)
+        cve_advisories = check_cve_advisories(tech_stack)
+        remediations = generate_remediation(headers, ssl_data, dns_data, exposed_paths)
+        overall = calculate_overall_security_grade(headers, ssl_data, dns_data, phishing, ports, exposed_paths)
         summary = generate_risk_summary(headers, phishing, ports)
+
+        # Save scan to SQLite Database
+        save_scan_history(url, overall["score"], overall["grade"], overall["status"])
 
         return jsonify({
             "success": True,
@@ -717,8 +1084,15 @@ def scan_full():
             "domain_info": domain_info,
             "geo_info": geo_info,
             "tech_stack": tech_stack,
+            "cve_advisories": cve_advisories,
             "perf_info": perf_info,
             "security_files": security_files,
+            "osint_subdomains": osint_subdomains,
+            "cookie_audit": cookie_audit,
+            "page_metadata": page_metadata,
+            "exposed_paths": exposed_paths,
+            "cors_audit": cors_audit,
+            "dnssec_info": dnssec_info,
             "remediations": remediations
         })
     except Exception as e:
@@ -726,111 +1100,13 @@ def scan_full():
 
 
 # -----------------------------------
-# INDIVIDUAL MODULAR ROUTES
+# SCAN HISTORY API ENDPOINT
 # -----------------------------------
 
-@app.route("/scan/geo", methods=["POST"])
-def geo_scan():
-    data = request.json
-    try:
-        url = get_request_url(data)
-        geo = analyze_ip_geo(url)
-        return jsonify({"success": True, "geo": geo})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/scan/headers", methods=["POST"])
-def scan_headers():
-    data = request.json
-    try:
-        url = get_request_url(data)
-        headers, fetched = check_headers(url)
-        return jsonify({
-            "success": True,
-            "headers": headers,
-            "raw_headers": fetched.get("raw_headers"),
-            "status_code": fetched.get("status_code"),
-            "final_url": fetched.get("final_url"),
-        })
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/scan/ssl", methods=["POST"])
-def ssl_scan():
-    data = request.json
-    try:
-        url = get_request_url(data)
-        result = analyze_ssl(url)
-        return jsonify({"success": True, "ssl": result})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/scan/dns", methods=["POST"])
-def dns_scan():
-    data = request.json
-    try:
-        url = get_request_url(data)
-        result = analyze_dns(url)
-        return jsonify({"success": True, "dns": result})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/scan/phishing", methods=["POST"])
-def phishing_scan():
-    data = request.json
-    try:
-        url = get_request_url(data)
-        result = analyze_phishing(url)
-        return jsonify({"success": True, "result": result})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/scan/ports", methods=["POST"])
-def port_scan():
-    data = request.json
-    try:
-        url = get_request_url(data)
-        results = scan_ports(url)
-        return jsonify({"success": True, "ports": results})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/scan/summary", methods=["POST"])
-def risk_summary():
-    data = request.json
-    try:
-        url = get_request_url(data)
-        headers, fetched = check_headers(url)
-        phishing = analyze_phishing(url)
-        ports = scan_ports(url)
-        summary = generate_risk_summary(headers, phishing, ports)
-
-        return jsonify({
-            "success": True,
-            "summary": summary,
-            "raw_headers": fetched.get("raw_headers"),
-            "status_code": fetched.get("status_code"),
-            "final_url": fetched.get("final_url"),
-        })
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/scan/domain", methods=["POST"])
-def domain_scan():
-    data = request.json
-    try:
-        url = get_request_url(data)
-        info = get_domain_info(url)
-        return jsonify({"success": True, "info": info})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+@app.route("/scan/history", methods=["GET"])
+def get_history():
+    history = get_scan_history()
+    return jsonify({"success": True, "history": history})
 
 
 # -----------------------------------

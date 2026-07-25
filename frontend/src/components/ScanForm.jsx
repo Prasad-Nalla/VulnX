@@ -12,6 +12,9 @@ import PhishingCard from "./PhishingCard";
 import WhoisCard from "./WhoisCard";
 import RemediationCard from "./RemediationCard";
 import GeoTechCard from "./GeoTechCard";
+import OsintCard from "./OsintCard";
+import SensitivePathsCard from "./SensitivePathsCard";
+import CorsCard from "./CorsCard";
 
 const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
   const [url, setUrl] = useState(initialUrl);
@@ -117,7 +120,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
           <span className="text-emerald-300 font-bold">./scan_target.sh</span>
         </div>
         <p className="text-emerald-600 text-xs mb-6">
-          [Audit Engine: Security Headers | SSL Ciphers | Geolocation | Tech Stack | SPF/DMARC | Port Scanner | Phishing]
+          [OSINT Audit Engine: Headers | SSL | CORS | DNSSEC | Subdomains | Cookies | Metadata | Geo | Tech Stack | Ports]
         </p>
 
         <div className="flex gap-2 flex-col sm:flex-row">
@@ -157,7 +160,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
           <div className="flex flex-wrap gap-1.5 p-1.5 bg-black/90 rounded border border-emerald-500/40 mb-6">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
                 activeTab === "overview" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
@@ -166,7 +169,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
 
             <button
               onClick={() => setActiveTab("headers")}
-              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
                 activeTab === "headers" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
@@ -174,57 +177,84 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
             </button>
 
             <button
+              onClick={() => setActiveTab("cors")}
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                activeTab === "cors" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
+              }`}
+            >
+              [3] CORS & DNSSEC
+            </button>
+
+            <button
+              onClick={() => setActiveTab("paths")}
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                activeTab === "paths" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
+              }`}
+            >
+              [4] SENSITIVE PATHS
+            </button>
+
+            <button
               onClick={() => setActiveTab("geo")}
-              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
                 activeTab === "geo" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [3] GEO & TECH STACK
+              [5] GEO & TECH STACK
+            </button>
+
+            <button
+              onClick={() => setActiveTab("osint")}
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                activeTab === "osint" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
+              }`}
+            >
+              [6] OSINT & SUBDOMAINS
             </button>
 
             <button
               onClick={() => setActiveTab("ssl")}
-              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
                 activeTab === "ssl" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [4] SSL / TLS CIPHERS
+              [7] SSL / TLS CIPHERS
             </button>
 
             <button
               onClick={() => setActiveTab("dns")}
-              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
                 activeTab === "dns" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [5] DNS & EMAIL
+              [8] DNS & EMAIL
             </button>
 
             <button
               onClick={() => setActiveTab("ports")}
-              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
                 activeTab === "ports" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [6] PORT SCANNER
+              [9] PORT SCANNER
             </button>
 
             <button
               onClick={() => setActiveTab("phishing")}
-              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
                 activeTab === "phishing" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [7] THREAT & WHOIS
+              [10] THREAT & WHOIS
             </button>
 
             <button
               onClick={() => setActiveTab("remediation")}
-              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
                 activeTab === "remediation" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [8] HARDENING FIXES
+              [11] HARDENING FIXES
             </button>
           </div>
 
@@ -256,12 +286,34 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
             </div>
           )}
 
+          {activeTab === "cors" && (
+            <CorsCard
+              corsAudit={fullData.cors_audit}
+              dnssecInfo={fullData.dnssec_info}
+            />
+          )}
+
+          {activeTab === "paths" && (
+            <SensitivePathsCard
+              exposedPaths={fullData.exposed_paths}
+              cveAdvisories={fullData.cve_advisories}
+            />
+          )}
+
           {activeTab === "geo" && (
             <GeoTechCard
               geoInfo={fullData.geo_info}
               techStack={fullData.tech_stack}
               perfInfo={fullData.perf_info}
               securityFiles={fullData.security_files}
+            />
+          )}
+
+          {activeTab === "osint" && (
+            <OsintCard
+              subdomainsInfo={fullData.osint_subdomains}
+              cookieAudit={fullData.cookie_audit}
+              pageMetadata={fullData.page_metadata}
             />
           )}
 
