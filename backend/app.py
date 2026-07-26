@@ -11,6 +11,12 @@ from datetime import datetime
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 
+from modules.crawler import crawl_target
+from modules.sqli import scan_sqli
+from modules.xss import scan_xss
+from modules.report import generate_report_html
+from modules.ports import scan_ports
+
 app = Flask(__name__)
 CORS(app)
 
@@ -932,7 +938,30 @@ def generate_remediation(headers, ssl_data, dns_data, exposed_paths):
     return remediations
 
 
-def calculate_overall_security_grade(headers, ssl_data, dns_data, phishing_data, ports_data, exposed_paths):
+def run_active_vuln_scan(url):
+    try:
+        crawled = crawl_target(url, max_pages=10, timeout=3)
+        forms = crawled.get("discovered_forms", [])
+        sqli_res = scan_sqli(url, crawled_forms=forms)
+        xss_res = scan_xss(url, crawled_forms=forms)
+
+        return {
+            "success": True,
+            "crawler": crawled,
+            "sqli": sqli_res,
+            "xss": xss_res
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "crawler": {"total_crawled": 0, "crawled_pages": []},
+            "sqli": {"vulnerable": False, "count": 0, "findings": []},
+            "xss": {"vulnerable": False, "count": 0, "findings": []}
+        }
+
+
+def calculate_overall_security_grade(headers, ssl_data, dns_data, phishing_data, ports_data, exposed_paths, vuln_scan=None):
     score = 100
 
     missing_headers = [k for k, v in headers.items() if v == "Missing"]
@@ -959,6 +988,12 @@ def calculate_overall_security_grade(headers, ssl_data, dns_data, phishing_data,
 
     if exposed_paths and exposed_paths.get("count", 0) > 0:
         score -= exposed_paths["count"] * 12
+
+    if vuln_scan:
+        sqli_cnt = vuln_scan.get("sqli", {}).get("count", 0)
+        xss_cnt = vuln_scan.get("xss", {}).get("count", 0)
+        score -= sqli_cnt * 20
+        score -= xss_cnt * 12
 
     score = max(0, min(100, score))
 
@@ -988,7 +1023,7 @@ def calculate_overall_security_grade(headers, ssl_data, dns_data, phishing_data,
     }
 
 
-def generate_risk_summary(headers, phishing, ports):
+def generate_risk_summary(headers, phishing, ports, vuln_scan=None):
     issues = [key for key, value in headers.items() if value == "Missing"]
 
     summary = ""
@@ -1010,7 +1045,49 @@ def generate_risk_summary(headers, phishing, ports):
     else:
         summary += "No common open ports were detected. "
 
+    if vuln_scan:
+        sqli_cnt = vuln_scan.get("sqli", {}).get("count", 0)
+        xss_cnt = vuln_scan.get("xss", {}).get("count", 0)
+        if sqli_cnt > 0 or xss_cnt > 0:
+            summary += f"ACTIVE VULNERABILITY ALERT: {sqli_cnt} SQL Injection findings and {xss_cnt} XSS findings detected! "
+        else:
+            summary += "Active probing did not uncover immediate SQLi or Reflected XSS flaws. "
+
     return summary
+
+
+# -----------------------------------
+# ACTIVE VULNERABILITY SCAN ROUTE (SQLi, XSS, Crawl)
+# -----------------------------------
+
+@app.route("/scan/vulnerabilities", methods=["POST"])
+def scan_vulnerabilities_route():
+    data = request.json
+    try:
+        url = get_request_url(data)
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+    results = run_active_vuln_scan(url)
+    return jsonify(results)
+
+
+# -----------------------------------
+# REPORT DOWNLOAD ENDPOINT
+# -----------------------------------
+
+@app.route("/scan/report/download", methods=["POST"])
+def download_report():
+    data = request.json
+    if not data:
+        return jsonify({"error": "No scan data provided"}), 400
+
+    html_report = generate_report_html(data)
+    return jsonify({
+        "success": True,
+        "filename": f"vulnx-audit-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+        "html": html_report
+    })
 
 
 # -----------------------------------
@@ -1026,7 +1103,7 @@ def scan_full():
         return jsonify({"success": False, "error": str(e)}), 400
 
     try:
-        with ThreadPoolExecutor(max_workers=14) as executor:
+        with ThreadPoolExecutor(max_workers=16) as executor:
             fut_headers = executor.submit(check_headers, url)
             fut_ssl = executor.submit(analyze_ssl, url)
             fut_dns = executor.submit(analyze_dns, url)
@@ -1042,6 +1119,7 @@ def scan_full():
             fut_paths = executor.submit(audit_exposed_paths, url)
             fut_cors = executor.submit(audit_cors, url)
             fut_dnssec = executor.submit(check_dnssec, url)
+            fut_vuln = executor.submit(run_active_vuln_scan, url)
 
             headers, fetched = fut_headers.result()
             ssl_data = fut_ssl.result()
@@ -1058,12 +1136,13 @@ def scan_full():
             exposed_paths = fut_paths.result()
             cors_audit = fut_cors.result()
             dnssec_info = fut_dnssec.result()
+            vuln_scan = fut_vuln.result()
 
         tech_stack = detect_tech_stack(fetched.get("raw_headers"))
         cve_advisories = check_cve_advisories(tech_stack)
         remediations = generate_remediation(headers, ssl_data, dns_data, exposed_paths)
-        overall = calculate_overall_security_grade(headers, ssl_data, dns_data, phishing, ports, exposed_paths)
-        summary = generate_risk_summary(headers, phishing, ports)
+        overall = calculate_overall_security_grade(headers, ssl_data, dns_data, phishing, ports, exposed_paths, vuln_scan)
+        summary = generate_risk_summary(headers, phishing, ports, vuln_scan)
 
         # Save scan to SQLite Database
         save_scan_history(url, overall["score"], overall["grade"], overall["status"])
@@ -1093,6 +1172,7 @@ def scan_full():
             "exposed_paths": exposed_paths,
             "cors_audit": cors_audit,
             "dnssec_info": dnssec_info,
+            "vuln_scan": vuln_scan,
             "remediations": remediations
         })
     except Exception as e:

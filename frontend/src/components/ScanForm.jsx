@@ -1,5 +1,6 @@
 import { useState } from "react";
 import API from "../services/api";
+import { FiClock } from "react-icons/fi";
 
 import Loader from "./Loader";
 import OverviewCard from "./OverviewCard";
@@ -15,6 +16,8 @@ import GeoTechCard from "./GeoTechCard";
 import OsintCard from "./OsintCard";
 import SensitivePathsCard from "./SensitivePathsCard";
 import CorsCard from "./CorsCard";
+import VulnScanCard from "./VulnScanCard";
+import HistoryModal from "./HistoryModal";
 
 const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
   const [url, setUrl] = useState(initialUrl);
@@ -22,6 +25,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [fullData, setFullData] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const handleScan = async (overrideUrl) => {
     const targetUrl = (typeof overrideUrl === "string" ? overrideUrl : url).trim();
@@ -115,12 +119,22 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
       
       {/* Scanner Input Panel */}
       <div className="bg-black/95 border border-emerald-500/50 rounded-lg p-6 shadow-[0_0_30px_rgba(0,255,102,0.15)]">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-emerald-400 font-bold">root@kali:~/vulnx#</span>
-          <span className="text-emerald-300 font-bold">./scan_target.sh</span>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-400 font-bold">root@kali:~/vulnx#</span>
+            <span className="text-emerald-300 font-bold">./scan_target.sh</span>
+          </div>
+
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="px-3 py-1 bg-black hover:bg-emerald-950 border border-emerald-500/40 text-emerald-400 rounded text-xs font-bold transition-all flex items-center gap-1.5 hover:shadow-[0_0_10px_rgba(0,255,102,0.2)]"
+          >
+            <FiClock /> SCAN HISTORY
+          </button>
         </div>
+
         <p className="text-emerald-600 text-xs mb-6">
-          [OSINT Audit Engine: Headers | SSL | CORS | DNSSEC | Subdomains | Cookies | Metadata | Geo | Tech Stack | Ports]
+          [OSINT & Active Vulnerability Engine: Headers | SSL | SQLi | XSS | Crawl | CORS | Subdomains | Ports]
         </p>
 
         <div className="flex gap-2 flex-col sm:flex-row">
@@ -168,12 +182,21 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
             </button>
 
             <button
+              onClick={() => setActiveTab("vulns")}
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                activeTab === "vulns" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
+              }`}
+            >
+              [2] ACTIVE VULNERABILITIES
+            </button>
+
+            <button
               onClick={() => setActiveTab("headers")}
               className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
                 activeTab === "headers" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [2] HEADERS AUDIT
+              [3] HEADERS AUDIT
             </button>
 
             <button
@@ -182,7 +205,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
                 activeTab === "cors" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [3] CORS & DNSSEC
+              [4] CORS & DNSSEC
             </button>
 
             <button
@@ -191,7 +214,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
                 activeTab === "paths" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [4] SENSITIVE PATHS
+              [5] SENSITIVE PATHS
             </button>
 
             <button
@@ -200,7 +223,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
                 activeTab === "geo" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [5] GEO & TECH STACK
+              [6] GEO & TECH STACK
             </button>
 
             <button
@@ -209,7 +232,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
                 activeTab === "osint" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [6] OSINT & SUBDOMAINS
+              [7] OSINT & SUBDOMAINS
             </button>
 
             <button
@@ -218,7 +241,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
                 activeTab === "ssl" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [7] SSL / TLS CIPHERS
+              [8] SSL / TLS CIPHERS
             </button>
 
             <button
@@ -227,7 +250,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
                 activeTab === "dns" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [8] DNS & EMAIL
+              [9] DNS & EMAIL
             </button>
 
             <button
@@ -236,7 +259,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
                 activeTab === "ports" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [9] PORT SCANNER
+              [10] PORT SCANNER
             </button>
 
             <button
@@ -245,7 +268,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
                 activeTab === "phishing" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [10] THREAT & WHOIS
+              [11] THREAT & WHOIS
             </button>
 
             <button
@@ -254,7 +277,7 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
                 activeTab === "remediation" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300"
               }`}
             >
-              [11] HARDENING FIXES
+              [12] HARDENING FIXES
             </button>
           </div>
 
@@ -268,6 +291,10 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
               onExportJson={handleExportJson}
               onExportReport={handleExportReport}
             />
+          )}
+
+          {activeTab === "vulns" && (
+            <VulnScanCard vulnData={fullData.vuln_scan} />
           )}
 
           {activeTab === "headers" && (
@@ -336,6 +363,14 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
 
         </div>
       )}
+
+      {/* History Modal */}
+      <HistoryModal
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onSelectTarget={(targetDomain) => handleScan(targetDomain)}
+      />
+
     </div>
   );
 };

@@ -1,5 +1,28 @@
+import API from "../services/api";
+
 const OverviewCard = ({ overall, summary, url, fullData, onExportJson, onExportReport }) => {
   if (!overall) return null;
+
+  const handleDownloadHtmlReport = async () => {
+    try {
+      const res = await API.post("/scan/report/download", fullData);
+      if (res.data && res.data.html) {
+        const blob = new Blob([res.data.html], { type: "text/html" });
+        const downloadAnchor = document.createElement("a");
+        downloadAnchor.href = URL.createObjectURL(blob);
+        downloadAnchor.download = res.data.filename || `vulnx-audit-report.html`;
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+      }
+    } catch (err) {
+      window.print();
+    }
+  };
+
+  const sqliCount = fullData?.vuln_scan?.sqli?.count || 0;
+  const xssCount = fullData?.vuln_scan?.xss?.count || 0;
+  const totalActiveVulns = sqliCount + xssCount;
 
   return (
     <div className="mt-6 border border-emerald-500/40 rounded-lg p-6 bg-black/95 shadow-[0_0_25px_rgba(0,255,102,0.15)] font-mono">
@@ -39,10 +62,10 @@ const OverviewCard = ({ overall, summary, url, fullData, onExportJson, onExportR
             <span>[+] EXPORT JSON REPORT</span>
           </button>
           <button
-            onClick={onExportReport}
+            onClick={handleDownloadHtmlReport}
             className="px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,255,102,0.4)]"
           >
-            <span>[+] PRINT KALI REPORT</span>
+            <span>[+] DOWNLOAD AUDIT REPORT</span>
           </button>
         </div>
       </div>
@@ -58,7 +81,7 @@ const OverviewCard = ({ overall, summary, url, fullData, onExportJson, onExportR
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6">
         <div className="bg-black p-3.5 rounded border border-emerald-500/30">
           <p className="text-[10px] uppercase text-emerald-600 font-bold">HTTP HEADERS</p>
           <p className="text-sm font-bold text-emerald-300 mt-1">
@@ -70,6 +93,13 @@ const OverviewCard = ({ overall, summary, url, fullData, onExportJson, onExportR
           <p className="text-[10px] uppercase text-emerald-600 font-bold">SSL ENCRYPTION</p>
           <p className={`text-sm font-bold mt-1 ${fullData?.ssl?.is_valid ? "text-emerald-400" : "text-red-400"}`}>
             {fullData?.ssl?.is_valid ? "VALID CERT" : "SSL WARNING"}
+          </p>
+        </div>
+
+        <div className="bg-black p-3.5 rounded border border-emerald-500/30">
+          <p className="text-[10px] uppercase text-emerald-600 font-bold">ACTIVE VULNS</p>
+          <p className={`text-sm font-bold mt-1 ${totalActiveVulns > 0 ? "text-red-400" : "text-emerald-400"}`}>
+            {totalActiveVulns > 0 ? `${totalActiveVulns} DETECTED` : "0 THREATS"}
           </p>
         </div>
 
