@@ -105,3 +105,17 @@ body::before {
 .animate-radar {
   animation: radar-sweep 3s linear infinite;
 }
+
+/* Scrollbar for Tab Container */
+.custom-tab-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.custom-tab-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 102, 0.4);
+  border-radius: 4px;
+}
+
+.custom-tab-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00ff66;
+}

@@ -1,4 +1,4 @@
-import { FiTerminal, FiShield, FiActivity } from "react-icons/fi";
+import { FiTerminal, FiGlobe, FiShield, FiExternalLink } from "react-icons/fi";
 
 const Navbar = ({ onQuickScan }) => {
   return (
@@ -30,21 +30,21 @@ const Navbar = ({ onQuickScan }) => {
           <span className="text-xs text-emerald-600 font-mono font-bold">Presets:</span>
           <button
             onClick={() => onQuickScan && onQuickScan("google.com")}
-            className="px-3 py-1 bg-black hover:bg-emerald-950 border border-emerald-500/40 text-emerald-400 rounded font-mono text-xs transition-all hover:shadow-[0_0_10px_rgba(0,255,102,0.3)]"
+            className="px-3 py-1 bg-black hover:bg-emerald-950 border border-emerald-500/40 hover:border-emerald-400 text-emerald-400 rounded font-mono text-xs transition-all flex items-center gap-1.5 cursor-pointer hover:shadow-[0_0_10px_rgba(0,255,102,0.3)]"
           >
-            google.com
+            <FiGlobe className="text-xs text-emerald-500" /> google.com
           </button>
           <button
             onClick={() => onQuickScan && onQuickScan("badssl.com")}
-            className="px-3 py-1 bg-black hover:bg-emerald-950 border border-emerald-500/40 text-emerald-400 rounded font-mono text-xs transition-all hover:shadow-[0_0_10px_rgba(0,255,102,0.3)]"
+            className="px-3 py-1 bg-black hover:bg-emerald-950 border border-emerald-500/40 hover:border-emerald-400 text-emerald-400 rounded font-mono text-xs transition-all flex items-center gap-1.5 cursor-pointer hover:shadow-[0_0_10px_rgba(0,255,102,0.3)]"
           >
-            badssl.com
+            <FiShield className="text-xs text-emerald-500" /> badssl.com
           </button>
           <button
             onClick={() => onQuickScan && onQuickScan("example.com")}
-            className="px-3 py-1 bg-black hover:bg-emerald-950 border border-emerald-500/40 text-emerald-400 rounded font-mono text-xs transition-all hover:shadow-[0_0_10px_rgba(0,255,102,0.3)]"
+            className="px-3 py-1 bg-black hover:bg-emerald-950 border border-emerald-500/40 hover:border-emerald-400 text-emerald-400 rounded font-mono text-xs transition-all flex items-center gap-1.5 cursor-pointer hover:shadow-[0_0_10px_rgba(0,255,102,0.3)]"
           >
-            example.com
+            <FiExternalLink className="text-xs text-emerald-500" /> example.com
           </button>
         </div>
 

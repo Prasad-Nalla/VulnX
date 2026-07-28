@@ -44,11 +44,17 @@ const Loader = () => {
         <span className="truncate">{steps[currentStepIndex]}</span>
       </div>
 
-      <div className="w-64 bg-black h-2 rounded mt-6 overflow-hidden border border-emerald-500/40">
-        <div 
-          className="h-full bg-emerald-400 transition-all duration-300 shadow-[0_0_10px_#00ff66]"
-          style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
-        ></div>
+      <div className="w-full max-w-xs mt-6">
+        <div className="flex justify-between text-[11px] font-mono text-emerald-500 mb-1.5 font-bold">
+          <span>STEP {currentStepIndex + 1}/{steps.length}</span>
+          <span>{Math.round(((currentStepIndex + 1) / steps.length) * 100)}%</span>
+        </div>
+        <div className="w-full bg-black h-2.5 rounded overflow-hidden border border-emerald-500/40">
+          <div 
+            className="h-full bg-emerald-400 transition-all duration-300 shadow-[0_0_10px_#00ff66]"
+            style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
+          ></div>
+        </div>
       </div>
     </div>
   );
