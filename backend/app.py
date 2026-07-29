@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+import os
+import time
+import ipaddress
 import requests
 import re
 import socket
@@ -10,6 +13,8 @@ import sqlite3
 from datetime import datetime
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
+from functools import wraps
+from collections import defaultdict
 
 from modules.crawler import crawl_target
 from modules.sqli import scan_sqli
@@ -17,8 +22,50 @@ from modules.xss import scan_xss
 from modules.report import generate_report_html
 from modules.ports import scan_ports
 
+# -----------------------------------
+# APP INITIALIZATION & CORS CONFIG
+# -----------------------------------
+
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+if allowed_origins_env:
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+else:
+    allowed_origins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:8000"]
+
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=allowed_origins)
+
+
+# -----------------------------------
+# RATE LIMITING & SECURITY MIDDLEWARE
+# -----------------------------------
+
+_rate_limit_store = defaultdict(list)
+
+def rate_limit(max_requests=10, window_seconds=60):
+    """
+    In-memory sliding window rate limiter per client IP.
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            client_ip = request.remote_addr or "127.0.0.1"
+            now = time.time()
+            timestamps = _rate_limit_store[client_ip]
+
+            # Filter out timestamps outside window
+            _rate_limit_store[client_ip] = [ts for ts in timestamps if now - ts < window_seconds]
+
+            if len(_rate_limit_store[client_ip]) >= max_requests:
+                return jsonify({
+                    "success": False,
+                    "error": f"Rate limit exceeded. Maximum {max_requests} requests per {window_seconds} seconds allowed."
+                }), 429
+
+            _rate_limit_store[client_ip].append(now)
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 
 # -----------------------------------
@@ -80,12 +127,57 @@ def get_scan_history():
         return []
 
 
+def is_ssrf_safe(url):
+    """
+    Validates if a target URL resolves to a public, non-private IP address.
+    Prevents SSRF attacks against internal infrastructure, cloud metadata, and loopback.
+    """
+    allow_local = os.getenv("ALLOW_LOCAL_SCANS", "false").lower() in ("true", "1", "yes")
+    if allow_local:
+        return True, None
+
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            return False, "Invalid URL structure or missing hostname."
+
+        # Check explicit local hostnames
+        if hostname.lower() in ("localhost", "0.0.0.0", "127.0.0.1", "::1"):
+            return False, "Scanning local/loopback addresses is strictly prohibited for security (SSRF Protection)."
+
+        # Resolve hostname to IP address
+        try:
+            ip_str = socket.gethostbyname(hostname)
+        except socket.gaierror:
+            return False, f"Could not resolve domain hostname '{hostname}'."
+
+        ip = ipaddress.ip_address(ip_str)
+
+        # Check for private, loopback, link-local, reserved, multicast
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            return False, f"Target resolves to a restricted/private IP address ({ip_str}) - Scan blocked (SSRF Protection)."
+
+        # Special check for cloud metadata addresses (169.254.169.254)
+        if str(ip).startswith("169.254."):
+            return False, "Target resolves to cloud metadata IP range - Scan blocked (SSRF Protection)."
+
+        return True, None
+    except Exception as e:
+        return False, f"URL security validation error: {str(e)}"
+
+
 def normalize_url(url):
     if not url or not str(url).strip():
         raise ValueError("URL is required")
     url = str(url).strip()
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
+
+    safe, reason = is_ssrf_safe(url)
+    if not safe:
+        raise ValueError(reason)
+
     return url
 
 
@@ -1061,6 +1153,7 @@ def generate_risk_summary(headers, phishing, ports, vuln_scan=None):
 # -----------------------------------
 
 @app.route("/scan/vulnerabilities", methods=["POST"])
+@rate_limit(max_requests=10, window_seconds=60)
 def scan_vulnerabilities_route():
     data = request.json
     try:
@@ -1095,6 +1188,7 @@ def download_report():
 # -----------------------------------
 
 @app.route("/scan/full", methods=["POST"])
+@rate_limit(max_requests=10, window_seconds=60)
 def scan_full():
     data = request.json
     try:
