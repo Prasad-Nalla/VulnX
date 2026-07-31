@@ -14,7 +14,9 @@ import {
   FiDatabase,
   FiCpu,
   FiAlertCircle,
-  FiCheckSquare
+  FiCheckSquare,
+  FiPlay,
+  FiTerminal
 } from "react-icons/fi";
 
 import Loader from "./Loader";
@@ -134,43 +136,43 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
   const totalActiveVulns = sqliCount + xssCount;
 
   return (
-    <div className="max-w-6xl mx-auto mt-6 px-4 pb-20 font-mono">
+    <div className="max-w-7xl mx-auto mt-6 px-4 sm:px-6 pb-20 font-['Outfit']">
       
-      {/* Scanner Input Panel */}
-      <div className="bg-black/95 border border-emerald-500/50 rounded-lg p-6 shadow-[0_0_30px_rgba(0,255,102,0.15)]">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-emerald-400 font-bold">root@kali:~/vulnx#</span>
-            <span className="text-emerald-300 font-bold">./scan_target.sh</span>
+      {/* Target Search Command Bar */}
+      <div className="glass-panel p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 text-sm font-mono">
+            <FiTerminal className="text-emerald-400 text-base" />
+            <span className="text-emerald-400 font-bold tracking-wide">root@vulnx:~#</span>
+            <span className="text-slate-400 font-mono text-xs hidden sm:inline">./scan_target.sh --full-audit</span>
           </div>
 
           <button
             onClick={() => setHistoryOpen(true)}
-            className="px-3 py-1 bg-black hover:bg-emerald-950 border border-emerald-500/40 text-emerald-400 rounded text-xs font-bold transition-all flex items-center gap-1.5 hover:shadow-[0_0_10px_rgba(0,255,102,0.2)]"
+            className="px-3 py-1.5 bg-slate-900/90 hover:bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 hover:text-emerald-300 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
-            <FiClock className="text-emerald-400" /> SCAN HISTORY
+            <FiClock className="text-emerald-400 text-xs" /> History Log
           </button>
         </div>
 
-        <p className="text-emerald-600 text-xs mb-6">
-          [OSINT & Active Vulnerability Engine: Headers | SSL | SQLi | XSS | Crawl | CORS | Subdomains | Ports]
-        </p>
-
-        <div className="flex gap-2 flex-col sm:flex-row">
+        <div className="flex gap-3 flex-col sm:flex-row mt-4">
           <div className="relative flex-1 flex items-center">
+            <div className="absolute left-4 text-emerald-500/80 pointer-events-none">
+              <FiSearch className="text-lg" />
+            </div>
             <input
               type="text"
-              placeholder="Enter domain or URL (e.g. google.com)"
+              placeholder="Enter target domain or URL (e.g. example.com, target.org)"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleScan()}
-              className="w-full bg-black border border-emerald-500/50 focus:border-emerald-400 rounded px-4 py-3 pr-10 text-emerald-300 outline-none font-mono text-xs transition-all kali-input"
+              className="w-full bg-slate-950/90 border border-emerald-500/40 focus:border-emerald-400 rounded-xl pl-11 pr-10 py-3.5 text-emerald-300 placeholder-slate-600 text-sm font-mono outline-none transition-all glass-input"
             />
             {url && (
               <button
                 type="button"
                 onClick={() => setUrl("")}
-                className="absolute right-3 text-emerald-600 hover:text-emerald-300 transition-colors"
+                className="absolute right-3 text-emerald-600 hover:text-emerald-300 transition-colors p-1"
                 title="Clear input"
               >
                 <FiX className="text-base" />
@@ -181,15 +183,24 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
           <button
             onClick={() => handleScan()}
             disabled={loading}
-            className="bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold px-6 py-3 rounded transition-all duration-300 shadow-[0_0_15px_rgba(0,255,102,0.4)] disabled:opacity-50 flex items-center justify-center gap-2 text-xs cursor-pointer"
+            className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black px-7 py-3.5 rounded-xl transition-all duration-300 shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center justify-center gap-2 text-sm cursor-pointer whitespace-nowrap font-mono"
           >
-            {loading ? "[+] AUDITING TARGET..." : "[+] EXECUTE SCAN"}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin text-lg">⏳</span> AUDITING TARGET...
+              </span>
+            ) : (
+              <>
+                <FiPlay className="fill-current text-sm" /> EXECUTE AUDIT
+              </>
+            )}
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 p-3 rounded bg-red-950/60 border border-red-500/50 text-red-400 text-xs flex items-center gap-2">
-            <span>[-] ERROR:</span> {error}
+          <div className="mt-4 p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5 font-mono">
+            <FiAlertTriangle className="text-rose-400 text-base flex-shrink-0" />
+            <span>{error}</span>
           </div>
         )}
       </div>
@@ -199,30 +210,30 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
       {fullData && !loading && (
         <div className="mt-8">
           
-          {/* Tab Navigation with Icons and Scrollable Container */}
-          <div className="flex overflow-x-auto gap-1.5 p-2 bg-black/90 rounded border border-emerald-500/40 mb-6 custom-tab-scrollbar">
+          {/* Sleek Matrix Tabbed Dashboard Bar */}
+          <div className="flex overflow-x-auto gap-2 p-2 bg-slate-950/90 rounded-xl border border-emerald-500/30 mb-6 custom-tab-scrollbar shadow-inner font-mono">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "overview" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "overview" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiPieChart className="text-sm" /> [1] EXECUTIVE RATING
+              <FiPieChart className="text-sm" /> Executive Overview
             </button>
 
             <button
               onClick={() => setActiveTab("vulns")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "vulns" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "vulns" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiAlertTriangle className="text-sm" /> [2] ACTIVE VULNERABILITIES
+              <FiAlertTriangle className="text-sm" /> Vulnerabilities
               {totalActiveVulns > 0 ? (
-                <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-500 text-white font-extrabold animate-pulse ml-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-extrabold animate-pulse">
                   {totalActiveVulns}
                 </span>
               ) : (
-                <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/40 ml-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/40">
                   0
                 </span>
               )}
@@ -230,92 +241,92 @@ const ScanForm = ({ initialUrl = "", onScanTriggered }) => {
 
             <button
               onClick={() => setActiveTab("headers")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "headers" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "headers" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiShield className="text-sm" /> [3] HEADERS AUDIT
+              <FiShield className="text-sm" /> Headers Audit
             </button>
 
             <button
               onClick={() => setActiveTab("cors")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "cors" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "cors" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiGlobe className="text-sm" /> [4] CORS & DNSSEC
+              <FiGlobe className="text-sm" /> CORS & Security
             </button>
 
             <button
               onClick={() => setActiveTab("paths")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "paths" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "paths" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiFolder className="text-sm" /> [5] SENSITIVE PATHS
+              <FiFolder className="text-sm" /> Sensitive Paths
             </button>
 
             <button
               onClick={() => setActiveTab("geo")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "geo" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "geo" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiMapPin className="text-sm" /> [6] GEO & TECH STACK
+              <FiMapPin className="text-sm" /> Geo & Tech Stack
             </button>
 
             <button
               onClick={() => setActiveTab("osint")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "osint" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "osint" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiSearch className="text-sm" /> [7] OSINT & SUBDOMAINS
+              <FiSearch className="text-sm" /> OSINT Recon
             </button>
 
             <button
               onClick={() => setActiveTab("ssl")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "ssl" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "ssl" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiLock className="text-sm" /> [8] SSL / TLS CIPHERS
+              <FiLock className="text-sm" /> SSL / TLS
             </button>
 
             <button
               onClick={() => setActiveTab("dns")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "dns" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "dns" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiDatabase className="text-sm" /> [9] DNS & EMAIL
+              <FiDatabase className="text-sm" /> DNS & Email
             </button>
 
             <button
               onClick={() => setActiveTab("ports")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "ports" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "ports" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiCpu className="text-sm" /> [10] PORT SCANNER
+              <FiCpu className="text-sm" /> Port Scanner
             </button>
 
             <button
               onClick={() => setActiveTab("phishing")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "phishing" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "phishing" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiAlertCircle className="text-sm" /> [11] THREAT & WHOIS
+              <FiAlertCircle className="text-sm" /> Threat & WHOIS
             </button>
 
             <button
               onClick={() => setActiveTab("remediation")}
-              className={`px-3 py-2 rounded text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === "remediation" ? "bg-emerald-500 text-black shadow-[0_0_10px_#00ff66]" : "text-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/50"
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === "remediation" ? "bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/30" : "text-emerald-500/80 hover:text-emerald-300 hover:bg-emerald-950/50"
               }`}
             >
-              <FiCheckSquare className="text-sm" /> [12] HARDENING FIXES
+              <FiCheckSquare className="text-sm" /> Hardening Fixes
             </button>
           </div>
 

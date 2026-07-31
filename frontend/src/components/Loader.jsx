@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
+import { FiShield, FiCpu } from "react-icons/fi";
 
 const Loader = () => {
   const steps = [
-    "[+] Launching Kali Linux vulnerability audit framework...",
-    "[+] Interrogating target socket & HTTP headers...",
-    "[+] Inspecting SSL/TLS handshake & cipher suites...",
-    "[+] Querying DNS records & verifying SPF/DMARC anti-spoofing...",
-    "[+] Executing concurrent TCP port scan (21, 22, 80, 443, 3306)...",
-    "[+] Geolocating IP address & fingerprinting tech stack...",
-    "[+] Synthesizing threat intelligence & generating remediation code..."
+    "Initializing VulnX threat intelligence audit engine...",
+    "Interrogating target HTTP headers & security policies...",
+    "Inspecting SSL/TLS certificate chain & encryption ciphers...",
+    "Auditing DNS records & verifying SPF/DMARC anti-spoofing...",
+    "Executing concurrent TCP port scan & service detection...",
+    "Geolocating target IP infrastructure & technology stack...",
+    "Analyzing CORS, sensitive endpoints & synthesizing findings..."
   ];
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -21,37 +22,39 @@ const Loader = () => {
   }, [steps.length]);
 
   return (
-    <div className="mt-8 border border-emerald-500/50 rounded-lg p-8 bg-black/95 shadow-[0_0_30px_rgba(0,255,102,0.2)] flex flex-col items-center justify-center text-center relative overflow-hidden">
+    <div className="mt-8 glass-panel p-8 sm:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-2xl">
       
-      {/* Kali Radar Effect */}
-      <div className="relative w-24 h-24 flex items-center justify-center mb-6">
-        <div className="absolute inset-0 rounded-full border border-emerald-500/30"></div>
-        <div className="absolute inset-3 rounded-full border border-emerald-500/50"></div>
-        <div className="absolute inset-6 rounded-full border border-emerald-500/70"></div>
+      {/* Hacker Radar Scan Effect */}
+      <div className="relative w-28 h-28 flex items-center justify-center mb-6">
+        <div className="absolute inset-0 rounded-full border border-emerald-500/25"></div>
+        <div className="absolute inset-4 rounded-full border border-emerald-500/40"></div>
+        <div className="absolute inset-8 rounded-full border border-emerald-500/60"></div>
         
         <div className="absolute inset-0 rounded-full animate-radar origin-center bg-gradient-to-tr from-emerald-500/40 via-transparent to-transparent"></div>
         
-        <div className="w-5 h-5 rounded-full bg-emerald-400 animate-ping"></div>
-        <div className="w-3 h-3 rounded-full bg-emerald-300 absolute"></div>
+        <div className="w-6 h-6 rounded-full bg-emerald-400/40 animate-ping"></div>
+        <div className="w-10 h-10 rounded-xl bg-slate-950 border border-emerald-500/60 flex items-center justify-center absolute shadow-[0_0_15px_rgba(0,255,102,0.3)]">
+          <FiShield className="text-emerald-400 text-lg" />
+        </div>
       </div>
 
-      <h3 className="text-lg font-bold font-mono text-emerald-400 tracking-wider neon-text-green">
-        root@kali:~# nmap -sV -sC -A --script=vuln target
+      <h3 className="text-base font-bold text-emerald-400 tracking-wide font-mono flex items-center gap-2 neon-text-green">
+        <FiCpu className="text-emerald-400" /> ACTIVE SECURITY SCAN IN PROGRESS
       </h3>
 
-      <div className="mt-4 px-4 py-3 bg-emerald-950/60 rounded border border-emerald-500/40 font-mono text-xs text-emerald-300 max-w-xl w-full flex items-center justify-center gap-2">
-        <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <div className="mt-4 px-5 py-3 bg-slate-950/90 rounded-xl border border-emerald-500/40 text-xs font-mono text-emerald-300 max-w-xl w-full flex items-center justify-center gap-2.5 shadow-inner">
+        <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
         <span className="truncate">{steps[currentStepIndex]}</span>
       </div>
 
-      <div className="w-full max-w-xs mt-6">
-        <div className="flex justify-between text-[11px] font-mono text-emerald-500 mb-1.5 font-bold">
-          <span>STEP {currentStepIndex + 1}/{steps.length}</span>
-          <span>{Math.round(((currentStepIndex + 1) / steps.length) * 100)}%</span>
+      <div className="w-full max-w-sm mt-6 font-mono">
+        <div className="flex justify-between text-xs text-slate-400 mb-2 font-bold">
+          <span>PROGRESS</span>
+          <span className="text-emerald-400">{Math.round(((currentStepIndex + 1) / steps.length) * 100)}%</span>
         </div>
-        <div className="w-full bg-black h-2.5 rounded overflow-hidden border border-emerald-500/40">
+        <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-emerald-500/40">
           <div 
-            className="h-full bg-emerald-400 transition-all duration-300 shadow-[0_0_10px_#00ff66]"
+            className="h-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-300 shadow-[0_0_12px_rgba(0,255,102,0.5)]"
             style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
           ></div>
         </div>
