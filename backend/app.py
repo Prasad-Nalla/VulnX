@@ -882,59 +882,23 @@ def analyze_phishing(url):
 
 
 # -----------------------------------
-# PORT SCANNER
+# -----------------------------------
+# PORT SCANNER ENDPOINT
 # -----------------------------------
 
-def check_single_port(host, port, service):
+@app.route("/scan/ports", methods=["POST"])
+@rate_limit(max_requests=10, window_seconds=60)
+def scan_ports_route():
+    data = request.json
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.5)
-        result = sock.connect_ex((host, port))
-        sock.close()
-        if result == 0:
-            return {"port": port, "service": service, "status": "OPEN"}
-    except Exception:
-        pass
-    return None
+        url = get_request_url(data)
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 400
 
+    mode = (data.get("mode") or "standard").lower()
+    ports_result = scan_ports(url, mode=mode)
+    return jsonify({"success": True, "ports": ports_result, "mode": mode})
 
-def scan_ports(url):
-    common_ports = {
-        21: "FTP",
-        22: "SSH",
-        25: "SMTP",
-        53: "DNS",
-        80: "HTTP",
-        110: "POP3",
-        143: "IMAP",
-        443: "HTTPS",
-        3306: "MySQL",
-        8080: "HTTP-ALT",
-    }
-
-    parsed = urlparse(url)
-    host = parsed.netloc or parsed.path
-    host = host.split("/")[0].split(":")[0]
-
-    if not host:
-        return []
-
-    results = []
-    try:
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = [
-                executor.submit(check_single_port, host, port, service)
-                for port, service in common_ports.items()
-            ]
-            for future in futures:
-                res = future.result()
-                if res:
-                    results.append(res)
-    except Exception:
-        pass
-
-    results.sort(key=lambda x: x["port"])
-    return results
 
 
 # -----------------------------------
